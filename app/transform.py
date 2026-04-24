@@ -11,9 +11,3 @@ def transform_data(data):
 
     return transformed
 
-
-if __name__ == "__main__":
-    from extract import extract_data
-    
-    data = extract_data()
-    transform_data(data)
