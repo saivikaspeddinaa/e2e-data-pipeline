@@ -1,3 +1,7 @@
+import logging
+
+logger = logging.getLogger(__name__)
+
 def transform_data(data):
     transformed = []
 
@@ -6,8 +10,6 @@ def transform_data(data):
             (item['id'], item['title'].upper())
         )
 
-    print("Data transformed successfully!")
-    print("Number of records:", len(transformed))
+    logger.info(f"Transformed {len(transformed)} records")
 
     return transformed
-

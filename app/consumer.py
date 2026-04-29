@@ -1,38 +1,39 @@
+import logging
 from kafka import KafkaConsumer
 import json
-import psycopg2
+from app.etl.transform import transform_data
+from app.etl.load import load_data
 
-# Connect to PostgreSQL
-conn = psycopg2.connect(
-    dbname="etl_db",
-    user="postgres",
-    password="Light@10",
-    host="localhost",
-    port="5432"
+# Logging setup
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
 )
+logger = logging.getLogger(__name__)
 
-cur = conn.cursor()
-
-# Kafka consumer
 consumer = KafkaConsumer(
     'test-topic',
-    bootstrap_servers='localhost:9092',
+    bootstrap_servers='127.0.0.1:9092',
+    api_version=(0, 10),
     auto_offset_reset='earliest',
     value_deserializer=lambda x: json.loads(x.decode('utf-8'))
 )
 
-print("Listening and inserting into DB...")
+logger.info("Consumer started...")
+
+batch = []
 
 for message in consumer:
-    data = message.value
-
     try:
-        cur.execute(
-            "INSERT INTO posts (id, title) VALUES (%s, %s) ON CONFLICT (id) DO NOTHING;",
-            (data['id'], data['title'])
-        )
-        conn.commit()
-        print("Inserted:", data['id'])
+        batch.append(message.value)
+
+        if len(batch) == 10:  # 🔥 batch size
+            transformed = transform_data(batch)
+            load_data(transformed)
+
+            logger.info(f"Processed batch of {len(batch)} records")
+
+            batch.clear()
 
     except Exception as e:
-        print("Error:", e)
+        logger.error(f"Error processing message: {e}")
